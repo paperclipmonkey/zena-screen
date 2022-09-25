@@ -1,3 +1,15 @@
+/**
+ * Send array to webserver for displaying
+ */
+async function send(buff) {
+  console.log('sending data')
+  let req = new XMLHttpRequest()
+  req.open("POST", "http://192.168.96.63/frame", true)
+  req.setRequestHeader("Accept-Language", "")
+  req.setRequestHeader("Accept", "")
+  await req.send(buff)
+}
+
 class Canvas {
     constructor(width, height) {
       this.canvas = document.querySelector("#canvas");
@@ -19,6 +31,7 @@ class Canvas {
       this.frames = [];
       
       this.previous_point = new Point(undefined,undefined)
+      this.setcolor([255, 255, 255, 255]);
       // Moved on-click to on-mouse-up to tell the difference
       //  between a click and a mouse-drag + click
   
@@ -86,7 +99,7 @@ class Canvas {
         } else if (tools[Tool.eraser]) {
           var temp = this.color;
           var tga = this.ctx.globalAlpha;
-          this.setcolor([255, 255, 255, 255]);
+          this.setcolor([0, 0, 0, 255]);
           this.draw(x, y);
           this.setcolor(temp);
           this.ctx.globalAlpha = tga;
@@ -125,18 +138,24 @@ class Canvas {
           if (!count && JSON.stringify(this.steps[this.steps.length-1])!==JSON.stringify([x,y,this.color,this.ctx.globalAlpha])) this.steps.push([x,y,this.color,this.ctx.globalAlpha]);
         }
     }
+
+    async send() {
+      let data = convertCanvas(this.ctx, this.width, this.height)
+      send(data)
+    }
     
     erase(x, y){
       var temp = this.color;
       var tga = this.ctx.globalAlpha;
-      this.setcolor([255, 255, 255, 255]);
+      this.setcolor([0, 0, 0, 255]);
       this.draw(x, y);
       this.setcolor(temp);
       this.ctx.globalAlpha = tga;
     }
   
     setcolor(color) {
-        this.ctx.globalAlpha = 1;
+      console.log("Setting color", color)
+      this.ctx.globalAlpha = 1;
       this.color = color;
       this.ctx.fillStyle = "rgba(" + color[0] + "," + color[1] + "," + color[2] + "," + color[3] + ")";
     }
@@ -161,7 +180,7 @@ class Canvas {
     }
   
     clear() {
-      this.ctx.fillStyle = "white";
+      this.ctx.fillStyle = "black";
       this.ctx.fillRect(0, 0, this.w, this.h);
       this.data = [...Array(this.width)].map(e => Array(this.height).fill([255, 255, 255, 255]));
       this.setcolor(this.color);
