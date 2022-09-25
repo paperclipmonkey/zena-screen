@@ -37,7 +37,7 @@ function convertCanvas(ctx, xres, yres) {
 async function send(buff) {
     console.log('sending data')
     let req = new XMLHttpRequest()
-    req.open("POST", "http://192.168.0.234/frame", true)
+    req.open("POST", "http://"+window.ip+"/frame", true)
     req.setRequestHeader("Accept-Language", "")
     req.setRequestHeader("Accept", "")
     await req.send(buff)

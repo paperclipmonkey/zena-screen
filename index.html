@@ -45,6 +45,7 @@
     <div id="popup">
       <h3>Select the Dimensions of the grid</h3>
       <input type="text" id="width" value="32">X<input type="text" id="height" value="8">
+      <input type="text" id="ip" value="192.168.0.">
       <button id="close">OK</button>
     </div>
     <div id="frames" onblur="Frames.close()" tabindex="0">
@@ -193,6 +194,7 @@ window.onload = function () {
 document.querySelector("#close").onclick = function () {
   var width = +document.querySelector("#width").value;
   var height = +document.querySelector("#height").value;
+  window.ip = +document.querySelector("#ip").value;
   if(window.board == undefined){
     window.board = new Canvas(width, height);
   }
