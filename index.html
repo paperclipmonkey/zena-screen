@@ -24,7 +24,7 @@
 <meta name="twitter:title" content="PixelCraft: A Pixel Art Editor" />
 <meta name="twitter:image" content="https://rgab1508.github.io/PixelCraft/images/overview.png" />
 <link rel="shortcut icon" type="image/png" href="icons/logo.png"/>
-<link rel="stylesheet" type="text/css" href="global.css" />
+<link rel="stylesheet" type="text/css" href="css/global.css" />
 <link rel="manifest" href="manifest.json">
 <script src="https://kit.fontawesome.com/473e8f3a80.js" crossorigin="anonymous"></script>
 
@@ -45,7 +45,6 @@
     <div id="popup">
       <h3>Select the Dimensions of the grid</h3>
       <input type="text" id="width" value="32">X<input type="text" id="height" value="8">
-      <input type="text" id="ip" value="192.168.0.">
       <button id="close">OK</button>
     </div>
     <div id="frames" onblur="Frames.close()" tabindex="0">
@@ -194,7 +193,6 @@ window.onload = function () {
 document.querySelector("#close").onclick = function () {
   var width = +document.querySelector("#width").value;
   var height = +document.querySelector("#height").value;
-  window.ip = +document.querySelector("#ip").value;
   if(window.board == undefined){
     window.board = new Canvas(width, height);
   }

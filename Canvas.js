@@ -1,15 +1,3 @@
-/**
- * Send array to webserver for displaying
- */
-async function send(buff) {
-  console.log('sending data')
-  let req = new XMLHttpRequest()
-  req.open("POST", "http://192.168.96.63/frame", true)
-  req.setRequestHeader("Accept-Language", "")
-  req.setRequestHeader("Accept", "")
-  await req.send(buff)
-}
-
 class Canvas {
     constructor(width, height) {
       this.canvas = document.querySelector("#canvas");
