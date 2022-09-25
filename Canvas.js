@@ -154,7 +154,6 @@ class Canvas {
     }
   
     setcolor(color) {
-      console.log("Setting color", color)
       this.ctx.globalAlpha = 1;
       this.color = color;
       this.ctx.fillStyle = "rgba(" + color[0] + "," + color[1] + "," + color[2] + "," + color[3] + ")";
