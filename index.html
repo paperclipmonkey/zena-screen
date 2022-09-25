@@ -289,5 +289,19 @@ function install() {
     }
   });
 }
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(
+    'sw.js',
+    scope
+  ).then(function (serviceWorker) {
+    console.log('successful');
+  }).catch(function (error) {
+    console.log('Cannot install SW');
+  });
+} else {
+  console.log('unavailable');
+}
+
 </script>
 </html>
