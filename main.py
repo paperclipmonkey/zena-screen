@@ -1,83 +1,54 @@
-# Control an LED array to show a message coming in over HTTP POST
-    # Saves the last image to show on reboot
-    # Shows the IP address on boot
-    # HTTP file server (mostly working)
-
+from microdot import Microdot
+from microdot import send_file
 import network
-import socket
 import time
-import gc
+import secrets
+import time
 import neopixel
 import os
 import bitmapfont
 from machine import Pin
 import utime
-import re
-import math
-
-headerLineRegex = re.compile("[\r\n]")
-headerPathRegex = re.compile("\s")
-headerPathFiletypeRegex = re.compile("\.")
-
-SPEED          = 10.0    # Scroll speed in pixels per second.
-ssid           = '####' # YOUR WIFI SSID
-password       = '####' # YOUR WIFI PASSWORD
-xres           = 32 # X resolution of neopixel array
-yres           = 8 # Y resolution of neopixel array
-pin            = 22 # PIN connected to screen
-frameBytes = xres * yres * 2 # 16 bit image depth
-
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
-wlan.connect(ssid, password)
-
-wall = neopixel.NeoPixel(machine.Pin(pin), xres * yres)
-wall.write()
 
 def display(request):
-    #print('display')
-    for i in range(len(request) - 3):
-        # cr + lf + cr + lf
-        if(request[i] == 13 and request[i + 1] == 10 and request[i + 2] == 13 and request[i + 3] == 10):
-            # found frame start
-            start = i + 4;
-            for y in range(yres):
-                for x in range(xres):
-                    rgb = request[start] | (request[start + 1] << 8)
-                    r = rgb & 31
-                    g = (rgb >> 5) & 63
-                    b = rgb >> 11
-                    wall[mapPixel(x, y)] = (r<<1, g<<0, b<<1)
-                    start += 2
-            wall.write()
-            print('drawn')
-
+    print('display')
+    start = 0
+    for y in range(YRES):
+        for x in range(XRES):
+            rgb = request[start] | (request[start + 1] << 8)
+            r = rgb & 31
+            g = (rgb >> 5) & 63
+            b = rgb >> 11
+            wall[mapPixel(x, y)] = (r<<1, g<<0, b<<1)
+            start += 2
+    wall.write()
+    #print('displayed')
 
 # Compute pixel array positiong from
 # x,y coordinate
 # TODO Fix for your type of chain positioning
 def mapPixel(x, y):
-    y = abs(y - yres + 1) # text was upside down
+    y = abs(y - YRES + 1) # text was upside down
     if x % 2 == 1:
-        return (yres * x) + y
+        return (YRES * x) + y
     else:
-        return yres * x + yres - 1 - y
+        return YRES * x + YRES - 1 - y
 
 # Alternative display code for screen with different internal routing
 #def mapPixel(x, y):
 #    if y % 2 == 1:
-#        return xres * y + x
+#        return XRES * y + x
 #    else:
-#        return xres * y + xres - 1 - x
+#        return XRES * y + XRES - 1 - x
 
 # Light up a single pixel in the chain
 def drawPixel(x,y, colour=(16,16,16)):
-    if x >= xres:
+    if x >= XRES:
         return
-    if y >= yres:
+    if y >= YRES:
         return
     wall[mapPixel(x, y)] = colour
-
+    
 # Show cached image (if exists)
 def showCache():
     try:
@@ -88,15 +59,15 @@ def showCache():
 
 # Clear out drawing array buffer
 def clearBuffer(colour = (0,0,0)):
-    for y in range(yres):
-        for x in range(xres):
+    for y in range(YRES):
+        for x in range(XRES):
             wall[mapPixel(x, y)] = colour
 
 # Clear pixel screen
 def clearScreen(colour = (0,0,0)):
     clearBuffer(colour)
     wall.write()
-
+    
 # Scroll a message along the screen
 def scrollText(message):
     with bitmapfont.BitmapFont(32, 8, drawPixel) as bf:
@@ -113,7 +84,7 @@ def scrollText(message):
             # Compute position using speed and time delta.
             pos -= speed_ms*delta_ms
             if pos < -message_width:
-                pos = xres
+                pos = XRES
                 break
             # Clear the matrix and draw the text at the current position.
             clearBuffer()
@@ -124,18 +95,30 @@ def scrollText(message):
             # of SAMD21 firmware right now).
             utime.sleep_ms(20)
 
-showCache()
+
+SPEED          = 10.0    # Scroll speed in pixels per second.
+XRES           = 32 # X resolution of neopixel array
+YRES           = 8 # Y resolution of neopixel array
+PIN            = 22 # PIN connected to screen
+FRAMEBYTES = XRES * YRES * 2 # 16 bit image depth
+
+wall = neopixel.NeoPixel(machine.Pin(PIN), XRES * YRES)
+wlan = network.WLAN(network.STA_IF)
+wlan.active(True)
+wlan.connect(secrets.networkName,secrets.networkPassword)
 
 # Incrementally fill the screen up
 # Useful for testing the array ordering
 def snake():
     clearScreen()
-    for x in range(xres):
-        for y in range(yres):
+    for x in range(XRES):
+        for y in range(YRES):
             drawPixel(x,y)
             time.sleep(0.1)
             wall.write()
 #snake()
+
+showCache()
 
 max_wait = 25 # Seconds to wait for WiFi
 while max_wait > 0:
@@ -146,6 +129,9 @@ while max_wait > 0:
     time.sleep(1)
 
 if wlan.status() != 3:
+    import machine
+    led = machine.Pin("LED", machine.Pin.OUT)
+    led.on() # LED on means the network connection failed
     raise RuntimeError('network connection failed')
 else:
     print('connected')
@@ -153,98 +139,43 @@ else:
     print( 'ip = ' + status[0] )
     scrollText(status[0]) # Show IP address on the screen
 
-addr = socket.getaddrinfo('0.0.0.0', 80)[0][-1]
 
-s = socket.socket()
-s.bind(addr)
-s.listen(1)
+app = Microdot()
 
-print('listening on', addr)
-    
-showCache() # Default state is showing previous image
+@app.route('/')
+def hello(request):
+    return send_file('static/index.html')
 
-# Listen for connections
-while True:
-    try:
-        cl, addr = s.accept()
-        # print('client connected from', addr)
-        request = cl.recv(8196)
-        # print(request)
-        if len(request) >= 1:
-            if request[0] == 80: # 'P' for post
-                for i in range(len(request) - 3):
-                    if(request[i] == 13 and request[i + 1] == 10 and request[i + 2] == 13 and request[i + 3] == 10):
-                        # found frame start
-                        # print('found start at %d' % i)
-                        start = i + 4;
-                        while (len(request) - start < frameBytes):
-                            request += cl.recv(8196)
-                        # Save to file so we can show it on next reboot
-                        f = open("cache.dat", "wb")
-                        f.write(request)
-                        f.close()
-                        display(request)
-                        cl.send('HTTP/1.0 200 OK\r\nAccess-Control-Allow-Origin:*\r\n')
-                        break
-            # Kept for posterity. The file web server mostly works but garbles
-            # up long non-binary responses (> ~4kb)
-            if request[0] == 71: # 'G' for GET
-                headers = headerLineRegex.split(request)
-                parsedPath = headerPathRegex.split(headers[0])
-                path = parsedPath[1].decode('UTF-8')
-                binaryFiles = ['woff', 'woff2', 'png', 'jpg']
-                contentTypes = {
-                    'woff': 'font/woff',
-                    'woff2': 'font/woff2',
-                    'png': 'image/png',
-                    'jpg': 'image/jpg',
-                    'js': 'text/javascript',
-                    'css': 'text/css',
-                    'html': 'text/html',
-                }
-                print('GET: ' + path)
-                if(path == '/'):
-                    path = 'index.html'
-                
-                fileType = headerPathFiletypeRegex.split(path)
-                if fileType[-1] in binaryFiles:
-                    print("Binary file")
-                    try:
-                        f = open("/web/" + path, "rb")
-                        contentType = contentTypes.get(fileType[-1])
-                        cl.send('HTTP/1.0 200 OK\r\n' + contentType + '\r\n\r\n')
-                        while True:
-                            buffer = f.read(1024)
-                            if buffer:
-                                cl.send(buffer)
-                            else:
-                                break
-                        #cl.send(f.read())
-                    except OSError:
-                        cl.send('HTTP/1.0 404 OK\r\nContent-type: text/html\r\n\r\nFile Not Found')
+@app.route('/shutdown')
+def shutdown(request):
+    request.app.shutdown()
+    return 'The server is shutting down...'
 
-                else:
-                    print("Non-Binary file")
-                    try:
-                        f = open("/web/" + path, "r")
-                        #fileSize = os.size("/web/" + path) # Filesize not available in Pico Micropython ?
-                        contentType = contentTypes.get(fileType[-1])
-                        #'\r\ncontent-length: ' + fileSize + 
-                        cl.send('HTTP/1.0 200 OK\r\nContent-type: ' + contentType + '\r\n\r\n')
-                        while True:
-                            buffer = f.read(9192)
-                            if buffer:
-                                cl.send(buffer)
-                            else:
-                                break
-                    except OSError:
-                        cl.send('HTTP/1.0 404 OK\r\nContent-type: text/html\r\n\r\nFile Not Found')
-        cl.close()
-        #del request
-        #del cl
-        #del addr
-        #gc.collect()
+@app.route('/resolution', methods=['GET'])
+def draw(request):
+    return {
+        'x': XRES,
+        'y': YRES
+    }
 
-    except OSError as e:
-        cl.close()
-        print('connection closed')
+@app.route('/draw', methods=['GET'])
+def draw(request):
+    return send_file('cache.dat')
+
+@app.route('/draw', methods=['POST'])
+def draw(request):
+    f = open("cache.dat", "wb")
+    f.write(request.body)
+    f.close()
+    display(request.body)
+    return 'success'
+
+@app.route('/<path:path>')
+def static(request, path):
+    if '..' in path:
+        # directory traversal is not allowed
+        return 'Not found', 404
+    return send_file('static/' + path)
+
+
+app.run(debug=True, port=80)
